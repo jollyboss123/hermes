@@ -22,18 +22,20 @@ public class Server {
     private final Map<Peer, Boolean> peers;
     private final Channel<Peer> addPeerCh;
     private final Channel<?> quitCh;
+    private final Channel<byte[]> msgCh;
     private AtomicBoolean running = new AtomicBoolean(true);
     private static final int DEFAULT_PORT = 5001;
 
     private Server(Config cfg) {
-        this(cfg, new ConcurrentHashMap<>(), new Channel<>(), new Channel<>());
+        this(cfg, new ConcurrentHashMap<>(), new Channel<>(), new Channel<>(), new Channel<>());
     }
 
-    private Server(Config cfg, Map<Peer, Boolean> peers, Channel<Peer> addPeerCh, Channel<?> quitCh) {
+    private Server(Config cfg, Map<Peer, Boolean> peers, Channel<Peer> addPeerCh, Channel<?> quitCh, Channel<byte[]> msgCh) {
         this.cfg = cfg;
         this.peers = peers;
         this.addPeerCh = addPeerCh;
         this.quitCh = quitCh;
+        this.msgCh = msgCh;
     }
 
     public static Server create(Config cfg) {
@@ -68,11 +70,15 @@ public class Server {
                             addPeerCh.receiveClause(peer -> {
                                 log.info(() -> "peer connected: %s".formatted(peer));
                                 peers.put(peer, true);
-                                return peer;
+                                return null;
                             }),
                             quitCh.receiveClause(q -> {
                                 running.getAndSet(false);
                                 cleanup();
+                                return null;
+                            }),
+                            msgCh.receiveClause(rawMsg -> {
+                                handleRawMessage(rawMsg);
                                 return null;
                             })
                     );
@@ -99,7 +105,7 @@ public class Server {
 
     private void handleConn(Socket clientSocket) throws IOException {
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            Peer p = Peer.create(clientSocket);
+            Peer p = Peer.create(clientSocket, this.msgCh);
             executor.submit(() -> {
                 try {
                     log.info(() -> "peer send: %s".formatted(clientSocket.getRemoteSocketAddress().toString()));
@@ -113,6 +119,10 @@ public class Server {
         } catch (IOException e) {
             throw e;
         }
+    }
+
+    private void handleRawMessage(byte[] rawMsg) {
+        log.info(() -> new String(rawMsg));
     }
 
     private void cleanup() {
