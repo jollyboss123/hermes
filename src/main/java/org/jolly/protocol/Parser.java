@@ -54,13 +54,21 @@ public class Parser implements Iterator<Token> {
 
     private Token parseToken(byte[] buf) {
         byte prefix = buf[0];
-        int size = Integer.parseInt(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8));
         switch (prefix) {
             case PREFIX_BULK_STRING -> {
-                return parseBulkStringToken(decoder.readLine(), size);
+                return parseBulkStringToken(decoder.readLine(), size(buf));
             }
             case PREFIX_ARRAY -> {
-                return parseArray(size);
+                return parseArrayToken(size(buf));
+            }
+            case PREFIX_INTEGER -> {
+                return parseIntegerToken(buf);
+            }
+            case PREFIX_ERROR -> {
+                return parseErrorToken(buf);
+            }
+            case PREFIX_STRING -> {
+                return parseStringToken(buf);
             }
             default -> {
                 return new UnknownToken(new String(buf));
@@ -78,7 +86,7 @@ public class Parser implements Iterator<Token> {
         return token;
     }
 
-    private Token parseArray(int size) {
+    private Token parseArrayToken(int size) {
         List<Token> tokens = new ArrayList<>(size);
 
         for (int i = 0; i < size; i++) {
@@ -86,5 +94,30 @@ public class Parser implements Iterator<Token> {
         }
 
         return Token.array(tokens);
+    }
+
+    private Token parseIntegerToken(byte[] buf) {
+        IntegerToken token;
+        token = new IntegerToken(Integer.parseInt(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8)));
+
+        return token;
+    }
+
+    private Token parseErrorToken(byte[] buf) {
+        Token token;
+        token = Token.err(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8));
+
+        return token;
+    }
+
+    private Token parseStringToken(byte[] buf) {
+        Token token;
+        token = Token.string(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8));
+
+        return token;
+    }
+
+    private static int size(byte[] buf) {
+        return Integer.parseInt(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8));
     }
 }

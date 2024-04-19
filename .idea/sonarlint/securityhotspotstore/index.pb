@@ -43,3 +43,5 @@ e
 ,src/main/java/org/jolly/protocol/Parser.java,3/d/3d06c0a2b8e93a801b8c0d997d8bb93586b3c20e
 `
 0src/test/java/org/jolly/protocol/ParserTest.java,9/c/9c67ed8f9db6ce7c7c7ab9583c3eb9ffdadcdaf4
+[
++src/main/java/org/jolly/protocol/Token.java,f/0/f0a26911053b1689079fec6a7ea1b0577d7b90a7
