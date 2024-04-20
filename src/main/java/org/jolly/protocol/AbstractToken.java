@@ -24,6 +24,11 @@ public abstract class AbstractToken<T> implements Token {
     }
 
     @Override
+    public byte[] getBytes() {
+        return value.toString().getBytes();
+    }
+
+    @Override
     public int hashCode() {
         int result = type.hashCode();
         result = 31 * result + value.hashCode();

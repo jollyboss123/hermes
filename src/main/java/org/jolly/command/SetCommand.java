@@ -1,5 +1,6 @@
 package org.jolly.command;
 
+import org.jolly.KV;
 import org.jolly.protocol.Token;
 
 import java.util.List;
@@ -7,8 +8,8 @@ import java.util.logging.Logger;
 
 public final class SetCommand implements Command {
     private static final Logger log = Logger.getLogger(SetCommand.class.getName());
-    private String key;
-    private String value;
+    private byte[] key;
+    private byte[] value;
 
     @Override
     public int size() {
@@ -21,20 +22,21 @@ public final class SetCommand implements Command {
     }
 
     @Override
-    public void execute(List<Token> tokens) {
+    public void execute(KV kv, List<Token> tokens) {
         if (tokens.size() != this.size()) {
             throw new IllegalArgumentException("wrong number of parameters, expecting: " + this.size() + ", got: " + tokens.size());
         }
-        this.key = tokens.get(1).toString();
-        this.value = tokens.get(2).toString();
+        this.key = tokens.get(1).getBytes();
+        this.value = tokens.get(2).getBytes();
         log.info(() -> "command: %s key: %s value %s".formatted(this.getType(), this.key, this.value));
+        kv.set(key, value);
     }
 
-    public String getKey() {
+    public byte[] getKey() {
         return key;
     }
 
-    public String getValue() {
+    public byte[] getValue() {
         return value;
     }
 }

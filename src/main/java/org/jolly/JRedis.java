@@ -1,11 +1,10 @@
 package org.jolly;
 
-import java.io.IOException;
 import java.util.logging.Logger;
 
-public class Main {
+public class JRedis {
 
-    private static final Logger log = Logger.getLogger(Main.class.getName());
+    private static final Logger log = Logger.getLogger(JRedis.class.getName());
 
     public static void main(String[] args) {
         Config cfg = new Config(null);

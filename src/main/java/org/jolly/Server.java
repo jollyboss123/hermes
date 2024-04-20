@@ -2,17 +2,11 @@ package org.jolly;
 
 import com.softwaremill.jox.Channel;
 import com.softwaremill.jox.Select;
-import org.jolly.command.Command;
-import org.jolly.command.SetCommand;
-import org.jolly.protocol.ArrayToken;
-import org.jolly.protocol.Decoder;
-import org.jolly.protocol.Token;
-import org.jolly.protocol.TokenType;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -27,19 +21,21 @@ public class Server {
     private final Channel<Peer> addPeerCh;
     private final Channel<?> quitCh;
     private final Channel<byte[]> msgCh;
+    private final KV kv;
     private AtomicBoolean running = new AtomicBoolean(true);
     private static final int DEFAULT_PORT = 5001;
 
     private Server(Config cfg) {
-        this(cfg, new ConcurrentHashMap<>(), new Channel<>(), new Channel<>(), new Channel<>());
+        this(cfg, new ConcurrentHashMap<>(), new Channel<>(), new Channel<>(), new Channel<>(), KV.create());
     }
 
-    private Server(Config cfg, Map<Peer, Boolean> peers, Channel<Peer> addPeerCh, Channel<?> quitCh, Channel<byte[]> msgCh) {
+    private Server(Config cfg, Map<Peer, Boolean> peers, Channel<Peer> addPeerCh, Channel<?> quitCh, Channel<byte[]> msgCh, KV kv) {
         this.cfg = cfg;
         this.peers = peers;
         this.addPeerCh = addPeerCh;
         this.quitCh = quitCh;
         this.msgCh = msgCh;
+        this.kv = kv;
     }
 
     public static Server create(Config cfg) {
@@ -120,14 +116,12 @@ public class Server {
                 }
             });
             p.readLoop();
-        } catch (IOException e) {
-            throw e;
         }
     }
 
     private void handleRawMessage(byte[] rawMsg) {
         log.info(() -> new String(rawMsg));
-        Proto.parseCommand(rawMsg);
+        Proto.parseCommand(kv, rawMsg);
     }
 
     private void cleanup() {

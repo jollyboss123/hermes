@@ -7,6 +7,7 @@ public interface Token {
     Token NULL_STRING = bulkString(null);
     Token RESPONSE_OK = string("OK");
     TokenType getType();
+    byte[] getBytes();
     static Token nullString() {
         return NULL_STRING;
     }

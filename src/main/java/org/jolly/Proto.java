@@ -12,7 +12,7 @@ import java.util.List;
 public class Proto {
     private Proto() {}
 
-    public static Command parseCommand(byte[] buf) {
+    public static Command parseCommand(KV kv, byte[] buf) {
         Decoder decoder = Decoder.create(buf);
         Token decoded = decoder.decode();
 
@@ -21,7 +21,7 @@ public class Proto {
             switch (tokens.getFirst().toString()) {
                 case "SET" -> {
                     Command cmd = new SetCommand();
-                    cmd.execute(tokens);
+                    cmd.execute(kv, tokens);
                     return cmd;
                 }
                 default -> throw new UnsupportedOperationException(tokens.getFirst().toString());
