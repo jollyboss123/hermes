@@ -3,9 +3,6 @@ package org.jolly.protocol;
 import java.util.Arrays;
 import java.util.Collection;
 
-/**
- * @author jolly
- */
 public interface Token {
     Token NULL_STRING = bulkString(null);
     Token RESPONSE_OK = string("OK");
@@ -26,7 +23,13 @@ public interface Token {
         return new IntegerToken(i);
     }
     static Token bool(boolean b) {
-        return new IntegerToken(b ? 1 : 0);
+        return new BooleanToken(b);
+    }
+    static Token bool(String str) {
+        return new BooleanToken(str.equals("t"));
+    }
+    static Token nulls() {
+        return new NullToken("");
     }
     static Token err(String str) {
         return new ErrorToken(str);

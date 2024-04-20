@@ -1,8 +1,5 @@
 package org.jolly;
 
-/**
- * @author jolly
- */
 public class Config {
     private final Integer port;
 

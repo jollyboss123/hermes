@@ -6,15 +6,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-/**
- * @author jolly
- */
 public class Parser implements Iterator<Token> {
     private static final byte PREFIX_BULK_STRING = '$';
     private static final byte PREFIX_INTEGER = ':';
     private static final byte PREFIX_ERROR = '-';
     private static final byte PREFIX_STRING = '+';
     private static final byte PREFIX_ARRAY = '*';
+    private static final byte PREFIX_NULL = '_';
+    private static final byte PREFIX_BOOLEAN = '#';
 
     private final int maxLength;
     private final Decoder decoder;
@@ -55,7 +54,17 @@ public class Parser implements Iterator<Token> {
     private Token parseToken(byte[] buf) {
         byte prefix = buf[0];
         switch (prefix) {
+            case PREFIX_NULL -> {
+                return Token.nulls();
+            }
+            case PREFIX_BOOLEAN -> {
+                return parseBooleanToken(buf[1]);
+            }
             case PREFIX_BULK_STRING -> {
+                int size = size(buf);
+                if (size == -1) {
+                    return Token.nullString();
+                }
                 return parseBulkStringToken(decoder.readLine(), size(buf));
             }
             case PREFIX_ARRAY -> {
@@ -81,7 +90,7 @@ public class Parser implements Iterator<Token> {
         if (size > 0 && size < maxLength) {
             token = new BulkStringToken(new String(buf, 0, size, StandardCharsets.UTF_8));
         } else {
-            token = new BulkStringToken(new String(new byte[0]));
+            token = new BulkStringToken(new String(new byte[] {}));
         }
         return token;
     }
@@ -115,6 +124,10 @@ public class Parser implements Iterator<Token> {
         token = Token.string(new String(buf, 1, buf.length - 1, StandardCharsets.UTF_8));
 
         return token;
+    }
+
+    private Token parseBooleanToken(byte b) {
+        return Token.bool(b == 't');
     }
 
     private static int size(byte[] buf) {

@@ -1,16 +1,19 @@
 package org.jolly.protocol;
 
 import java.util.Collection;
+import java.util.Iterator;
 
-/**
- * @author jolly
- */
-public final class ArrayToken extends AbstractToken<Collection<Token>> {
+public final class ArrayToken extends AbstractToken<Collection<Token>> implements Iterable<Token> {
     ArrayToken(Collection<Token> value) {
         super(TokenType.ARRAY, value);
     }
 
     public int size() {
         return getValue().size();
+    }
+
+    @Override
+    public Iterator<Token> iterator() {
+        return getValue().iterator();
     }
 }

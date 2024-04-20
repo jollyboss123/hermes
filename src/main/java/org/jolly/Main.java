@@ -3,9 +3,6 @@ package org.jolly;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-/**
- * @author jolly
- */
 public class Main {
 
     private static final Logger log = Logger.getLogger(Main.class.getName());

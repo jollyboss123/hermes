@@ -1,8 +1,7 @@
 package org.jolly.protocol;
 
-/**
- * @author jolly
- */
+import java.util.Objects;
+
 public abstract class AbstractToken<T> implements Token {
     private final TokenType type;
     private final T value;
@@ -39,11 +38,11 @@ public abstract class AbstractToken<T> implements Token {
         if (!(o instanceof AbstractToken<?> that)) {
             return false;
         }
-        return type.equals(that.getType()) && value.equals(that.getValue());
+        return Objects.equals(type, that.getType()) && Objects.equals(value, that.getValue());
     }
 
     @Override
     public String toString() {
-        return type + "=>" + value;
+        return value.toString();
     }
 }

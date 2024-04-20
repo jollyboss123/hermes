@@ -6,9 +6,6 @@ import java.io.*;
 import java.net.Socket;
 import java.util.logging.Logger;
 
-/**
- * @author jolly
- */
 public class Peer {
     private static final Logger log = Logger.getLogger(Peer.class.getName());
     private final Socket conn;

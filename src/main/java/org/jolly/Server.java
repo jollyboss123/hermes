@@ -2,10 +2,17 @@ package org.jolly;
 
 import com.softwaremill.jox.Channel;
 import com.softwaremill.jox.Select;
+import org.jolly.command.Command;
+import org.jolly.command.SetCommand;
+import org.jolly.protocol.ArrayToken;
+import org.jolly.protocol.Decoder;
+import org.jolly.protocol.Token;
+import org.jolly.protocol.TokenType;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -13,9 +20,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-/**
- * @author jolly
- */
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class.getName());
     private final Config cfg;
@@ -123,6 +127,7 @@ public class Server {
 
     private void handleRawMessage(byte[] rawMsg) {
         log.info(() -> new String(rawMsg));
+        Proto.parseCommand(rawMsg);
     }
 
     private void cleanup() {
