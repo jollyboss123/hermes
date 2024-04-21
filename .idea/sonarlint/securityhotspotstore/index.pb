@@ -57,3 +57,5 @@ _
 -src/main/java/org/jolly/ByteArrayBuilder.java,1/b/1bf9ab7e2027ec9846126df58dd5cef6a4e146a6
 W
 'src/test/java/org/jolly/MockClient.java,6/1/61c81977d0fa472ea4bb1d5f5105e86cdddf0013
+T
+$src/main/java/org/jolly/Message.java,0/f/0f130b7ac110f789a0ef5ee26f26a3489721a503

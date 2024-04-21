@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,13 +58,14 @@ public class Server {
             while ((n = in.read(buf)) != -1) {
                 final int finalN = n;
                 byte[] copy = Arrays.copyOf(buf, n);
-                executor.submit(() -> {
-                    try {
-                        handleConn(out, copy, finalN);
-                    } catch (IOException e) {
-                        throw new IllegalStateException(e);
-                    }
-                });
+                handleConn(out, copy, finalN);
+//                executor.submit(() -> {
+//                    try {
+//                        handleConn(out, copy, finalN);
+//                    } catch (IOException e) {
+//                        throw new IllegalStateException(e);
+//                    }
+//                });
             }
 
             log.info(() -> "server stopped");
@@ -78,30 +80,26 @@ public class Server {
     }
 
     private void handleConn(OutputStream out, byte[] buf, int len) throws IOException {
-        Peer peer = Peer.create(buf, len);
+        Peer peer = Peer.create(out, buf, len);
         peers.put(peer, true);
         log.info(() -> "peer connected: %s".formatted(peer));
 
         byte[] rawMsg = peer.receive();
 
-        handleRawMessage(out, rawMsg);
+        handleRawMessage(peer, rawMsg);
     }
 
-    private void handleRawMessage(OutputStream out, byte[] rawMsg) throws IOException {
+    private void handleRawMessage(Peer peer, byte[] rawMsg) throws IOException {
         log.info(() -> new String(rawMsg, StandardCharsets.UTF_8));
         Command cmd = Proto.parseCommand(kv, rawMsg)
                 .orElseThrow();
         switch (cmd) {
             case SetCommand ignored -> {
-                out.write(Serializer.encodeToken(Token.RESPONSE_OK));
-                out.flush();
+                peer.send(Serializer.encodeToken(Token.RESPONSE_OK));
             }
             case GetCommand gc -> {
-                Token val = gc.getValue()
-                        .orElseThrow(() -> new RuntimeException("key not found"));
-                log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), val.toString()));
-                out.write(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), val))));
-                out.flush();
+                log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), gc.getValue().toString()));
+                peer.send(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), gc.getValue()))));
             }
             default ->
                 throw new IllegalStateException("Unexpected value: " + cmd);

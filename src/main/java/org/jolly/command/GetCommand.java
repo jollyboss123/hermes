@@ -1,17 +1,16 @@
 package org.jolly.command;
 
 import org.jolly.KV;
-import org.jolly.protocol.Decoder;
 import org.jolly.protocol.Token;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
 public final class GetCommand implements Command {
     private static final Logger log = Logger.getLogger(GetCommand.class.getName());
     private Token key;
-    private Optional<Token> value;
+    private Token value;
 
     @Override
     public int size() {
@@ -29,14 +28,17 @@ public final class GetCommand implements Command {
             throw new IllegalArgumentException("wrong number of parameters, expecting: " + this.size() + ", got: " + tokens.size());
         }
         this.key = tokens.get(1);
-        this.value = Optional.of(kv.get(key));
+        this.value = kv.get(key);
+        if (value == null) {
+            throw new NoSuchElementException("key not found: %s".formatted(key.toString()));
+        }
     }
 
     public Token getKey() {
         return key;
     }
 
-    public Optional<Token> getValue() {
+    public Token getValue() {
         return value;
     }
 }

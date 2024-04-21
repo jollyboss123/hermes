@@ -22,9 +22,8 @@ class ProtoTest {
         byte[] key = "hello".getBytes();
         byte[] val = "world".getBytes();
         assertNotNull(actual);
-//        assertArrayEquals(key, actual.getKey());
-//        assertArrayEquals(val, actual.getValue());
-//        assertEquals(new String(val), new String(kv.get(key)));
+        assertArrayEquals(key, actual.getKey().getBytes());
+        assertArrayEquals(val, actual.getValue().getBytes());
     }
 
     @Test

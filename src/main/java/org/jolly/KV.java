@@ -3,7 +3,6 @@ package org.jolly;
 import org.jolly.protocol.Token;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -36,5 +35,9 @@ public class KV {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    public int size() {
+        return data.size();
     }
 }

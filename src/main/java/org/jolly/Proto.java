@@ -10,8 +10,10 @@ import org.jolly.protocol.TokenType;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 public class Proto {
+    private static final Logger log = Logger.getLogger(Proto.class.getName());
     private Proto() {}
 
     public static Optional<Command> parseCommand(KV kv, byte[] buf) {

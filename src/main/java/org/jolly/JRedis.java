@@ -8,8 +8,6 @@ public class JRedis {
 
     public static void main(String[] args) {
         Config cfg = new Config(null);
-//        Server server = Server.create(cfg);
-//        server.start();
         Server server = Server.create(cfg);
         server.start();
     }
