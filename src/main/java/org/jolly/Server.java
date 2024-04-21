@@ -56,9 +56,9 @@ public class Server {
             byte[] buf = new byte[1024];
             int n;
             while ((n = in.read(buf)) != -1) {
-                final int finalN = n;
-                byte[] copy = Arrays.copyOf(buf, n);
-                handleConn(out, copy, finalN);
+                handleConn(out, buf, n);
+//                final int finalN = n;
+//                byte[] copy = Arrays.copyOf(buf, n);
 //                executor.submit(() -> {
 //                    try {
 //                        handleConn(out, copy, finalN);
@@ -80,29 +80,25 @@ public class Server {
     }
 
     private void handleConn(OutputStream out, byte[] buf, int len) throws IOException {
-        Peer peer = Peer.create(out, buf, len);
+        Peer peer = Peer.create(kv, out, buf, len);
         peers.put(peer, true);
         log.info(() -> "peer connected: %s".formatted(peer));
 
-        byte[] rawMsg = peer.receive();
-
-        handleRawMessage(peer, rawMsg);
+        handleMessage(peer.receive());
     }
 
-    private void handleRawMessage(Peer peer, byte[] rawMsg) throws IOException {
-        log.info(() -> new String(rawMsg, StandardCharsets.UTF_8));
-        Command cmd = Proto.parseCommand(kv, rawMsg)
-                .orElseThrow();
-        switch (cmd) {
+    private void handleMessage(Message msg) throws IOException {
+        log.info(() -> "handling and serializing: " + msg.getCmd().getType().toString());
+        switch (msg.getCmd()) {
             case SetCommand ignored -> {
-                peer.send(Serializer.encodeToken(Token.RESPONSE_OK));
+                msg.getPeer().send(Serializer.encodeToken(Token.RESPONSE_OK));
             }
             case GetCommand gc -> {
                 log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), gc.getValue().toString()));
-                peer.send(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), gc.getValue()))));
+                msg.getPeer().send(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), gc.getValue()))));
             }
             default ->
-                throw new IllegalStateException("Unexpected value: " + cmd);
+                throw new IllegalStateException("Unexpected value: " + msg.getCmd());
         }
     }
 }
