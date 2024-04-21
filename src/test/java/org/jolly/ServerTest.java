@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import redis.clients.jedis.Jedis;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +44,16 @@ class ServerTest {
     void cleanup() throws IOException {
         client.close();
         server.stop();
+    }
+
+    @Test
+    void connectJedisClient() {
+        try (Jedis jedis = new Jedis("localhost", 5002)) {
+            assertDoesNotThrow(() -> jedis.set("hello", "world"));
+            String value = jedis.get("hello");
+            assertEquals("world", value);
+            assertNull(jedis.get("non-existing"));
+        }
     }
 
     @Test
@@ -95,7 +106,7 @@ class ServerTest {
     }
 
     @Test
-    void multipleClientRequest() {
+    void multipleClientConcurrentRequest() {
         int clients = 10;
         String setCommand = "*3\r\n$3\r\nSET\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n";
         String getCommand = "*2\r\n$3\r\nGET\r\n$7\r\nhello_%d\r\n";
@@ -129,6 +140,7 @@ class ServerTest {
         awaitOnLatch(endLatch);
 
         assertEquals(10, kv.size());
+        assertEquals(0, server.getPeers().size());
     }
 
     @Disabled("pending handling of exceptions into error tokens")
@@ -145,7 +157,7 @@ class ServerTest {
 
     @Disabled("pending handling concurrent requests")
     @Test
-    void concurrentRequestsBySameClient() {
+    void sameClientConcurrentRequests() {
         String setCommand = "*3\r\n$3\r\nSET\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n";
         String getCommand = "*2\r\n$3\r\nGET\r\n$7\r\nhello_%d\r\n";
 
@@ -182,7 +194,7 @@ class ServerTest {
 
     @Disabled("pending handling concurrent requests")
     @Test
-    void concurrentRequestBySameClient_virtualThreads() throws InterruptedException {
+    void sameClientConcurrentRequest_virtualThreads() throws InterruptedException {
         String setCommand = "*3\r\n$3\r\nSET\r\n$5\r\nhello\r\n$5\r\nworld\r\n";
         String getCommand = "*2\r\n$3\r\nGET\r\n$5\r\nhello\r\n";
 

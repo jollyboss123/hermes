@@ -30,7 +30,8 @@ public final class GetCommand implements Command {
         this.key = tokens.get(1);
         this.value = kv.get(key);
         if (value == null) {
-            throw new NoSuchElementException("key not found: %s".formatted(key.toString()));
+            log.warning(() -> "key nonexistent : " + key.toString());
+            value = Token.nulls();
         }
     }
 

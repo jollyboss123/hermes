@@ -55,5 +55,10 @@ public class Server {
     public void stop() {
         running.set(false);
     }
+
+    // just for testing purposes to check if peer is removed correctly
+    Map<Peer, Boolean> getPeers() {
+        return peers;
+    }
 }
 

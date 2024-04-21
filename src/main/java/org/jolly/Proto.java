@@ -19,6 +19,7 @@ public class Proto {
     public static Optional<Command> parseCommand(KV kv, byte[] buf) {
         Decoder decoder = Decoder.create(buf);
         Token decoded = decoder.decode();
+        log.info(() -> "decoded: " + decoded.toString());
 
         if (decoded.getType().equals(TokenType.ARRAY)) {
             List<Token> tokens = (List<Token>) ((ArrayToken) decoded).getValue();

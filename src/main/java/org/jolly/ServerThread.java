@@ -52,6 +52,7 @@ public class ServerThread implements Runnable {
         log.info(() -> "peer connected: %s".formatted(peer));
 
         handleMessage(peer.receive());
+        peers.remove(peer);
     }
 
     private void handleMessage(Message msg) throws IOException {
@@ -62,7 +63,7 @@ public class ServerThread implements Runnable {
             }
             case GetCommand gc -> {
                 log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), gc.getValue().toString()));
-                msg.getPeer().send(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), gc.getValue()))));
+                msg.getPeer().send(Serializer.encodeToken(gc.getValue()));
             }
             default ->
                     throw new IllegalStateException("Unexpected value: " + msg.getCmd());
