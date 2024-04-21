@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 public final class ArrayToken extends AbstractToken<Collection<Token>> implements Iterable<Token> {
-    ArrayToken(Collection<Token> value) {
+    public ArrayToken(Collection<Token> value) {
         super(TokenType.ARRAY, value);
     }
 

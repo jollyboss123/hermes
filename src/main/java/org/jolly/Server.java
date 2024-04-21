@@ -1,40 +1,38 @@
 package org.jolly;
 
-import com.softwaremill.jox.Channel;
-import com.softwaremill.jox.Select;
+import org.jolly.command.Command;
+import org.jolly.command.GetCommand;
+import org.jolly.command.SetCommand;
+import org.jolly.protocol.ArrayToken;
+import org.jolly.protocol.Serializer;
+import org.jolly.protocol.Token;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class.getName());
     private final Config cfg;
     private final Map<Peer, Boolean> peers;
-    private final Channel<Peer> addPeerCh;
-    private final Channel<?> quitCh;
-    private final Channel<byte[]> msgCh;
     private final KV kv;
-    private AtomicBoolean running = new AtomicBoolean(true);
     private static final int DEFAULT_PORT = 5001;
 
-    private Server(Config cfg) {
-        this(cfg, new ConcurrentHashMap<>(), new Channel<>(), new Channel<>(), new Channel<>(), KV.create());
+    protected Server(Config cfg) {
+        this(cfg, new ConcurrentHashMap<>(), KV.create());
     }
 
-    private Server(Config cfg, Map<Peer, Boolean> peers, Channel<Peer> addPeerCh, Channel<?> quitCh, Channel<byte[]> msgCh, KV kv) {
+    protected Server(Config cfg, Map<Peer, Boolean> peers, KV kv) {
         this.cfg = cfg;
         this.peers = peers;
-        this.addPeerCh = addPeerCh;
-        this.quitCh = quitCh;
-        this.msgCh = msgCh;
         this.kv = kv;
     }
 
@@ -46,85 +44,68 @@ public class Server {
     }
 
     public void start() {
-        try (ServerSocket serverSocket = new ServerSocket(cfg.getPort())) {
+        try (ServerSocket serverSocket = new ServerSocket(cfg.getPort());
+             Socket clientSocket = serverSocket.accept();
+             InputStream in = new BufferedInputStream(clientSocket.getInputStream());
+             OutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
+             ExecutorService executor = Executors.newCachedThreadPool()) {
+
             log.info(() -> "starting server ip: %s port: %d".formatted(serverSocket.getInetAddress().getHostAddress(), serverSocket.getLocalPort()));
 
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                executor.submit(this::loop);
+            byte[] buf = new byte[1024];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                final int finalN = n;
+                byte[] copy = Arrays.copyOf(buf, n);
+                executor.submit(() -> {
+                    try {
+                        handleConn(out, copy, finalN);
+                    } catch (IOException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
             }
 
-            log.info(() -> "server running at port %d".formatted(this.cfg.getPort()));
-
-            acceptLoop(serverSocket);
+            log.info(() -> "server stopped");
         } catch (IOException e) {
             log.severe(() -> "failed to start server ip: %s".formatted(e.getMessage()));
             System.exit(1);
         }
     }
 
-    private Thread loop() {
-        return Thread.startVirtualThread(() -> {
-            try {
-                while (running.get() && !Thread.currentThread().isInterrupted()) {
-                    Select.select(
-                            addPeerCh.receiveClause(peer -> {
-                                log.info(() -> "peer connected: %s".formatted(peer));
-                                peers.put(peer, true);
-                                return null;
-                            }),
-                            quitCh.receiveClause(q -> {
-                                running.getAndSet(false);
-                                cleanup();
-                                return null;
-                            }),
-                            msgCh.receiveClause(rawMsg -> {
-                                handleRawMessage(rawMsg);
-                                return null;
-                            })
-                    );
-                }
+    public void stop() {
+        // cleanup
+    }
 
-            } catch (InterruptedException e) {
-                log.warning(() -> "receiving thread interrupted");
-                Thread.currentThread().interrupt();
-            } finally {
-                log.info(() -> "event loop terminated");
+    private void handleConn(OutputStream out, byte[] buf, int len) throws IOException {
+        Peer peer = Peer.create(buf, len);
+        peers.put(peer, true);
+        log.info(() -> "peer connected: %s".formatted(peer));
+
+        byte[] rawMsg = peer.receive();
+
+        handleRawMessage(out, rawMsg);
+    }
+
+    private void handleRawMessage(OutputStream out, byte[] rawMsg) throws IOException {
+        log.info(() -> new String(rawMsg, StandardCharsets.UTF_8));
+        Command cmd = Proto.parseCommand(kv, rawMsg)
+                .orElseThrow();
+        switch (cmd) {
+            case SetCommand ignored -> {
+                out.write(Serializer.encodeToken(Token.RESPONSE_OK));
+                out.flush();
             }
-        });
-    }
-
-    private void acceptLoop(ServerSocket ss) throws IOException {
-        try (Socket clientSocket = ss.accept()) {
-            log.info(() -> "accepting client connection: %s".formatted(clientSocket));
-            handleConn(clientSocket);
-        } catch (IOException e) {
-            log.severe(() -> "failed to accept client socket");
-            throw e;
+            case GetCommand gc -> {
+                Token val = gc.getValue()
+                        .orElseThrow(() -> new RuntimeException("key not found"));
+                log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), val.toString()));
+                out.write(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), val))));
+                out.flush();
+            }
+            default ->
+                throw new IllegalStateException("Unexpected value: " + cmd);
         }
-    }
-
-    private void handleConn(Socket clientSocket) throws IOException {
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            Peer p = Peer.create(clientSocket, this.msgCh);
-            executor.submit(() -> {
-                try {
-                    log.info(() -> "peer send: %s".formatted(clientSocket.getRemoteSocketAddress().toString()));
-                    addPeerCh.send(p);
-                } catch (InterruptedException e) {
-                    log.warning(() -> "add peer thread interrupted");
-                    Thread.currentThread().interrupt();
-                }
-            });
-            p.readLoop();
-        }
-    }
-
-    private void handleRawMessage(byte[] rawMsg) {
-        log.info(() -> new String(rawMsg));
-        Proto.parseCommand(kv, rawMsg);
-    }
-
-    private void cleanup() {
-        // to be completed
     }
 }
+

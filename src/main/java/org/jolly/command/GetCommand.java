@@ -1,43 +1,42 @@
 package org.jolly.command;
 
 import org.jolly.KV;
-import org.jolly.protocol.Serializer;
+import org.jolly.protocol.Decoder;
 import org.jolly.protocol.Token;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
-public final class SetCommand implements Command {
-    private static final Logger log = Logger.getLogger(SetCommand.class.getName());
+public final class GetCommand implements Command {
+    private static final Logger log = Logger.getLogger(GetCommand.class.getName());
     private Token key;
-    private Token value;
+    private Optional<Token> value;
 
     @Override
     public int size() {
-        return 3;
+        return 2;
     }
 
     @Override
     public CommandType getType() {
-        return CommandType.SET;
+        return CommandType.GET;
     }
 
     @Override
-    public void execute(KV kv, List<Token> tokens) {
+    public void execute(KV kv, List<Token> tokens) throws IllegalArgumentException {
         if (tokens.size() != this.size()) {
             throw new IllegalArgumentException("wrong number of parameters, expecting: " + this.size() + ", got: " + tokens.size());
         }
         this.key = tokens.get(1);
-        this.value = tokens.get(2);
-        log.info(() -> "command: %s key: %s value %s".formatted(this.getType(), this.key, this.value));
-        kv.set(key, value);
+        this.value = Optional.of(kv.get(key));
     }
 
     public Token getKey() {
         return key;
     }
 
-    public Token getValue() {
+    public Optional<Token> getValue() {
         return value;
     }
 }

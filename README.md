@@ -1,6 +1,6 @@
 # j-redis
 
-A naive implementation of redis in java. Uses java 21 virtual threads.
+A naive implementation of redis in java.
 
 ### run:
 ```bash

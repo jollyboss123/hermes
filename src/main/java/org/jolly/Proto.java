@@ -1,6 +1,7 @@
 package org.jolly;
 
 import org.jolly.command.Command;
+import org.jolly.command.GetCommand;
 import org.jolly.command.SetCommand;
 import org.jolly.protocol.ArrayToken;
 import org.jolly.protocol.Decoder;
@@ -8,11 +9,12 @@ import org.jolly.protocol.Token;
 import org.jolly.protocol.TokenType;
 
 import java.util.List;
+import java.util.Optional;
 
 public class Proto {
     private Proto() {}
 
-    public static Command parseCommand(KV kv, byte[] buf) {
+    public static Optional<Command> parseCommand(KV kv, byte[] buf) {
         Decoder decoder = Decoder.create(buf);
         Token decoded = decoder.decode();
 
@@ -22,12 +24,17 @@ public class Proto {
                 case "SET" -> {
                     Command cmd = new SetCommand();
                     cmd.execute(kv, tokens);
-                    return cmd;
+                    return Optional.of(cmd);
+                }
+                case "GET" -> {
+                    Command cmd = new GetCommand();
+                    cmd.execute(kv, tokens);
+                    return Optional.of(cmd);
                 }
                 default -> throw new UnsupportedOperationException(tokens.getFirst().toString());
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 }
