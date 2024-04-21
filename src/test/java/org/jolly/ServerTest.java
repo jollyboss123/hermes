@@ -94,6 +94,43 @@ class ServerTest {
         assertEquals(1, kv.size());
     }
 
+    @Test
+    void multipleClientRequest() {
+        int clients = 10;
+        String setCommand = "*3\r\n$3\r\nSET\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n";
+        String getCommand = "*2\r\n$3\r\nGET\r\n$7\r\nhello_%d\r\n";
+
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(clients);
+        List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
+        for (int i = 0; i < clients; i++) {
+            int j = i;
+            new Thread(() -> {
+                try {
+                    awaitOnLatch(startLatch);
+                    MockClient c = new MockClient("localhost", 5002);
+
+                    String setResponse = new String(c.sendCommand(setCommand.formatted(j, j)), StandardCharsets.UTF_8);
+                    assertEquals("+OK\r\n", setResponse, "Expected positive acknowledgment for SET command");
+
+                    String getResponse = new String(c.sendCommand(getCommand.formatted(j)), StandardCharsets.UTF_8);
+                    assertEquals("*2\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n".formatted(j, j), getResponse, "Expected fetched value to match the set value");
+                } catch (IOException e) {
+                    exceptions.add(e);
+                } finally {
+                    endLatch.countDown();
+                }
+            }).start();
+        }
+
+        log.info("starting threads");
+        startLatch.countDown();
+        log.info("main threads waiting for all get and set threads to finish");
+        awaitOnLatch(endLatch);
+
+        assertEquals(10, kv.size());
+    }
+
     @Disabled("pending handling of exceptions into error tokens")
     @Test
     void keyDoesNotExist() throws IOException {
@@ -106,31 +143,30 @@ class ServerTest {
         assertThrows(NoSuchElementException.class, () -> client.sendCommand(getCommand), "Expected no value for this key");
     }
 
-    @Disabled("pending handling of concurrent requests")
+    @Disabled("pending handling concurrent requests")
     @Test
     void concurrentRequestsBySameClient() {
-        String setCommand = "*3\r\n$3\r\nSET\r\n$5\r\nhello\r\n$5\r\nworld\r\n";
-        String getCommand = "*2\r\n$3\r\nGET\r\n$5\r\nhello\r\n";
+        String setCommand = "*3\r\n$3\r\nSET\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n";
+        String getCommand = "*2\r\n$3\r\nGET\r\n$7\r\nhello_%d\r\n";
 
-        AtomicReference<String> setResponse = new AtomicReference<>();
-        AtomicReference<String> getResponse = new AtomicReference<>();
-
-        int threadCount = 2;
+        int threadCount = 3;
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch endLatch = new CountDownLatch(threadCount);
         List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
 
         for (int i = 0; i < threadCount; i++) {
-            int finalI = i;
+            int j = i;
             new Thread(() -> {
                 try {
                     awaitOnLatch(startLatch);
-//                    setResponse.set(new String(client.sendCommand(setCommand), StandardCharsets.UTF_8));
-                    getResponse.set(new String(client.sendCommand(getCommand), StandardCharsets.UTF_8));
+                    String setResponse = new String(client.sendCommand(setCommand.formatted(j, j)), StandardCharsets.UTF_8);
+                    assertEquals("+OK\r\n", setResponse, "Expected positive acknowledgment for SET command");
+
+                    String getResponse = new String(client.sendCommand(getCommand.formatted(j)), StandardCharsets.UTF_8);
+                    assertEquals("*2\r\n$7\r\nhello_%d\r\n$7\r\nworld_%d\r\n".formatted(j, j), getResponse, "Expected fetched value to match the set value");
                 } catch (IOException e) {
                     exceptions.add(e);
                 } finally {
-                    log.info(() -> "counting down: " + finalI);
                     endLatch.countDown();
                 }
             }).start();
@@ -141,13 +177,7 @@ class ServerTest {
         log.info(() -> "main threads waiting for all command threads to finish");
         awaitOnLatch(endLatch);
 
-//        assertEquals("+OK\r\n", setResponse.get(), "Expected positive acknowledgment for SET command");
-        assertEquals("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n", getResponse.get(), "Expected fetched value to match the set value");
-
-        Token key = Token.bulkString("hello");
-        Token expectedValue = Token.bulkString("world");
-        Token actualValue = kv.get(key);
-        assertEquals(expectedValue, actualValue, "KV store should return the correct value for 'hello'");
+        assertEquals(8, kv.size());
     }
 
     @Disabled("pending handling concurrent requests")

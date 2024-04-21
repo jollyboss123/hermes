@@ -1,23 +1,13 @@
 package org.jolly;
 
-import org.jolly.command.Command;
-import org.jolly.command.GetCommand;
-import org.jolly.command.SetCommand;
-import org.jolly.protocol.ArrayToken;
-import org.jolly.protocol.Serializer;
-import org.jolly.protocol.Token;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class Server {
@@ -26,6 +16,7 @@ public class Server {
     private final Map<Peer, Boolean> peers;
     private final KV kv;
     private static final int DEFAULT_PORT = 5001;
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     protected Server(Config cfg) {
         this(cfg, new ConcurrentHashMap<>(), KV.create());
@@ -46,29 +37,15 @@ public class Server {
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(cfg.getPort());
-             Socket clientSocket = serverSocket.accept();
-             InputStream in = new BufferedInputStream(clientSocket.getInputStream());
-             OutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
-             ExecutorService executor = Executors.newCachedThreadPool()) {
+            ExecutorService executor = Executors.newCachedThreadPool()) {
 
-            log.info(() -> "starting server ip: %s port: %d".formatted(serverSocket.getInetAddress().getHostAddress(), serverSocket.getLocalPort()));
-
-            byte[] buf = new byte[1024];
-            int n;
-            while ((n = in.read(buf)) != -1) {
-                handleConn(out, buf, n);
-//                final int finalN = n;
-//                byte[] copy = Arrays.copyOf(buf, n);
-//                executor.submit(() -> {
-//                    try {
-//                        handleConn(out, copy, finalN);
-//                    } catch (IOException e) {
-//                        throw new IllegalStateException(e);
-//                    }
-//                });
+            while (running.get()) {
+                log.info(() -> "waiting for new client connection");
+                Socket socket = serverSocket.accept();
+                log.info(() -> "client connected");
+                executor.submit(ServerThread.create(socket, kv, peers));
             }
 
-            log.info(() -> "server stopped");
         } catch (IOException e) {
             log.severe(() -> "failed to start server ip: %s".formatted(e.getMessage()));
             System.exit(1);
@@ -76,30 +53,7 @@ public class Server {
     }
 
     public void stop() {
-        // cleanup
-    }
-
-    private void handleConn(OutputStream out, byte[] buf, int len) throws IOException {
-        Peer peer = Peer.create(kv, out, buf, len);
-        peers.put(peer, true);
-        log.info(() -> "peer connected: %s".formatted(peer));
-
-        handleMessage(peer.receive());
-    }
-
-    private void handleMessage(Message msg) throws IOException {
-        log.info(() -> "handling and serializing: " + msg.getCmd().getType().toString());
-        switch (msg.getCmd()) {
-            case SetCommand ignored -> {
-                msg.getPeer().send(Serializer.encodeToken(Token.RESPONSE_OK));
-            }
-            case GetCommand gc -> {
-                log.info(() -> "command: get key: %s value: %s".formatted(gc.getKey().toString(), gc.getValue().toString()));
-                msg.getPeer().send(Serializer.encodeToken(new ArrayToken(List.of(gc.getKey(), gc.getValue()))));
-            }
-            default ->
-                throw new IllegalStateException("Unexpected value: " + msg.getCmd());
-        }
+        running.set(false);
     }
 }
 
