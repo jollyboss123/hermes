@@ -2,9 +2,9 @@ package org.jolly;
 
 import java.util.logging.Logger;
 
-public class Hermes {
+public class Pegasus {
 
-    private static final Logger log = Logger.getLogger(Hermes.class.getName());
+    private static final Logger log = Logger.getLogger(Pegasus.class.getName());
 
     public static void main(String[] args) {
         Config cfg = new Config(null);

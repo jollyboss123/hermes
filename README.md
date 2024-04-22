@@ -1,13 +1,13 @@
-# hermes
+# pegasus
 
-hermes is a naive Java implementation of a Redis server that can be connected to using the Jedis client.
+pegasus is a naive Java implementation of a Redis server that can be connected to using the Jedis client.
 
 ## Installation and Setup
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/j-redis.git
+   git clone https://github.com/your-username/pegasus.git
    ```
 
 2. Build the project using maven:
@@ -17,7 +17,7 @@ hermes is a naive Java implementation of a Redis server that can be connected to
     mvn clean package
     ```
 
-3. Run the j-redis server
+3. Run the pegasus server
 
     ```bash
     java -jar target/j-redis.jar
