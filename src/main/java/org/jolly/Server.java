@@ -10,6 +10,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
+/**
+ * Server class to handle incoming client connections and manage these using separate threads.
+ * It uses a TCP socket to accept incoming connections and dispatches each connection to a {@link ServerThread}.
+ */
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class.getName());
     private final Config cfg;
@@ -18,16 +22,29 @@ public class Server {
     private static final int DEFAULT_PORT = 5001;
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    protected Server(Config cfg) {
+    Server(Config cfg) {
         this(cfg, new ConcurrentHashMap<>(), KV.create());
     }
 
-    protected Server(Config cfg, Map<Peer, Boolean> peers, KV kv) {
+    /**
+     * Main constructor initializing the server with a configuration, peer list, and key-value store.
+     *
+     * @param cfg Configuration settings for the server.
+     * @param peers Map to track all connected clients.
+     * @param kv Key-value store instance.
+     */
+    Server(Config cfg, Map<Peer, Boolean> peers, KV kv) {
         this.cfg = cfg;
         this.peers = peers;
         this.kv = kv;
     }
 
+    /**
+     * Static factory method to create a Server instance with default settings or specific configuration.
+     *
+     * @param cfg Configuration which may or may not include a specific port.
+     * @return a new Server instance based on the provided configuration.
+     */
     public static Server create(Config cfg) {
         if (cfg.getPort() == null) {
             cfg = new Config(DEFAULT_PORT);
@@ -35,6 +52,10 @@ public class Server {
         return new Server(cfg);
     }
 
+    /**
+     * Starts the server to accept incoming connections and dispatch them to threads.
+     * Utilizes an {@link ExecutorService} to manage threads efficiently.
+     */
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(cfg.getPort());
             ExecutorService executor = Executors.newCachedThreadPool()) {
@@ -52,11 +73,18 @@ public class Server {
         }
     }
 
+    /**
+     * Stops the server by updating the running flag to false.
+     */
     public void stop() {
         running.set(false);
     }
 
-    // just for testing purposes to check if peer is removed correctly
+    /**
+     * For testing purposes, this method allows access to the peers map to verify correct addition/removal of clients.
+     *
+     * @return Map of connected peers.
+     */
     Map<Peer, Boolean> getPeers() {
         return peers;
     }

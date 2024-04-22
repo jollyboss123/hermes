@@ -3,6 +3,11 @@ package org.jolly.protocol;
 import java.util.Arrays;
 import java.util.Collection;
 
+/**
+ * Token interface defines the structure for tokens used in the communication protocol based on RESP 3.
+ * This interface includes factory methods for creating various types of tokens such as strings,
+ * integers, boolean values, etc., which are used to encode or decode messages between the server and client.
+ */
 public interface Token {
     Token NULL_STRING = bulkString(null);
     Token RESPONSE_OK = string("OK");

@@ -2,6 +2,10 @@ package org.jolly;
 
 import org.jolly.command.Command;
 
+/**
+ * Message class represents a processed message containing a {@link Command} and a {@link Peer}.
+ * This is an immutable class.
+ */
 public class Message {
     private final Command cmd;
     private final Peer peer;

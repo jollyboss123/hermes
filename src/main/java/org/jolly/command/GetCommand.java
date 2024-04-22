@@ -4,9 +4,12 @@ import org.jolly.KV;
 import org.jolly.protocol.Token;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
+/**
+ * GetCommand is a concrete implementation of the Command interface that handles
+ * retrieval of values from a key-value store based on a provided key.
+ */
 public final class GetCommand implements Command {
     private static final Logger log = Logger.getLogger(GetCommand.class.getName());
     private Token key;
@@ -14,7 +17,7 @@ public final class GetCommand implements Command {
 
     @Override
     public int size() {
-        return 2;
+        return 2; // "GET" and one key
     }
 
     @Override

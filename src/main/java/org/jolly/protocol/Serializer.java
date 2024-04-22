@@ -4,6 +4,12 @@ import org.jolly.ByteArrayBuilder;
 
 import java.util.Collection;
 
+/**
+ * Serializer class provides static methods to encode different types of Token
+ * into a byte array format according to a specified protocol. Each token type
+ * is prefixed with a specific byte that indicates the type of the token, followed
+ * by the token's data and a delimiter.
+ */
 public class Serializer {
     private static final byte ARRAY = '*';
     private static final byte ERROR = '-';
@@ -14,16 +20,30 @@ public class Serializer {
     private static final byte BOOLEAN = '#';
     private static final byte[] DELIMITER = new byte[]{'\r', '\n'};
 
-    private Serializer() {}
+    private Serializer() {
+        // Private constructor to prevent instantiation
+    }
 
+    /**
+     * Encodes a token into a byte array.
+     * @param msg The token to encode.
+     * @return A byte array representing the encoded token.
+     */
     public static byte[] encodeToken(Token msg) {
         ByteArrayBuilder builder = new ByteArrayBuilder();
         encodeToken(builder, msg);
+        // trim the result byte[]
         byte[] buf = new byte[builder.size()];
         System.arraycopy(builder.getBackingArray(), 0, buf, 0, builder.size()); // trim
         return buf;
     }
 
+    /**
+     * Recursively encodes a token and appends the encoded data to a ByteArrayBuilder.
+     * This method handles different types of tokens and formats them according to their specific encoding rules.
+     * @param builder The ByteArrayBuilder to append encoded bytes to.
+     * @param msg The token to encode.
+     */
     private static void encodeToken(ByteArrayBuilder builder, Token msg) {
         switch (msg) {
             case ArrayToken at -> {

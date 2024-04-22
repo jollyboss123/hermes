@@ -12,10 +12,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+/**
+ * Proto class represents the communication protocol and contains methods
+ * for parsing commands from byte arrays.
+ */
 public class Proto {
     private static final Logger log = Logger.getLogger(Proto.class.getName());
     private Proto() {}
 
+    /**
+     * Parses a command from a byte array using the provided key-value store.
+     * @param kv The key-value store to operate on.
+     * @param buf The byte array containing the command.
+     * @return An optional Command object parsed from the byte array.
+     */
     public static Optional<Command> parseCommand(KV kv, byte[] buf) {
         Decoder decoder = Decoder.create(buf);
         Token decoded = decoder.decode();
