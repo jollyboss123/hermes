@@ -1,6 +1,6 @@
-# j-redis
+# hermes
 
-j-redis is a naive Java implementation of a Redis server that can be connected to using the Jedis client.
+hermes is a naive Java implementation of a Redis server that can be connected to using the Jedis client.
 
 ## Installation and Setup
 
